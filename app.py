@@ -11,125 +11,53 @@ app.secret_key = 'clothing_store_secret_2024'
  
 DB_NAME = 'clothing_store.db'
  
-# تأكد من إنشاء قاعدة البيانات عند البدء
 @app.before_request
 def create_database():
-    """تأكد من وجود قاعدة البيانات"""
     if not os.path.exists(DB_NAME):
         init_db()
  
-# ============ تهيئة قاعدة البيانات ============
- 
 def init_db():
-    """إنشاء قاعدة البيانات والجداول"""
     if os.path.exists(DB_NAME):
         return
-    
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    
-    # جدول المنتجات
-    c.execute('''
-        CREATE TABLE products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            price REAL NOT NULL,
-            category TEXT NOT NULL,
-            size TEXT,
-            color TEXT,
-            material TEXT,
-            gender TEXT,
-            description TEXT,
-            stock INTEGER DEFAULT 0,
-            image TEXT,
-            rating REAL DEFAULT 0,
-            reviews INTEGER DEFAULT 0
-        )
-    ''')
-    
-    # جدول الفئات
-    c.execute('''
-        CREATE TABLE categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            icon TEXT
-        )
-    ''')
-    
-    # جدول الطلبات
-    c.execute('''
-        CREATE TABLE orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_name TEXT NOT NULL,
-            customer_email TEXT NOT NULL,
-            customer_phone TEXT NOT NULL,
-            customer_address TEXT NOT NULL,
-            order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            total_price REAL NOT NULL,
-            status TEXT DEFAULT 'قيد المعالجة',
-            payment_method TEXT
-        )
-    ''')
-    
-    # جدول تفاصيل الطلبات
-    c.execute('''
-        CREATE TABLE order_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
-            price REAL NOT NULL,
-            size TEXT,
-            color TEXT,
-            FOREIGN KEY(order_id) REFERENCES orders(id),
-            FOREIGN KEY(product_id) REFERENCES products(id)
-        )
-    ''')
-    
-    # جدول الأدمن
-    c.execute('''
-        CREATE TABLE admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-    ''')
-    
-    # إدراج الفئات
-    categories = [
-        ('رجالي', '👔'),
-        ('نسائي', '👗'),
-        ('أطفال', '👶'),
-        ('أحذية', '👟'),
-        ('إكسسوارات', '⌚'),
-        ('ملابس رياضية', '⛹️')
-    ]
+    c.execute('''CREATE TABLE products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL, price REAL NOT NULL, category TEXT NOT NULL,
+        size TEXT, color TEXT, material TEXT, gender TEXT, description TEXT,
+        stock INTEGER DEFAULT 0, image TEXT, rating REAL DEFAULT 0, reviews INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, icon TEXT)''')
+    c.execute('''CREATE TABLE orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, customer_name TEXT NOT NULL,
+        customer_email TEXT NOT NULL, customer_phone TEXT NOT NULL,
+        customer_address TEXT NOT NULL, order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        total_price REAL NOT NULL, status TEXT DEFAULT 'قيد المعالجة', payment_method TEXT)''')
+    c.execute('''CREATE TABLE order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL, quantity INTEGER NOT NULL, price REAL NOT NULL,
+        size TEXT, color TEXT,
+        FOREIGN KEY(order_id) REFERENCES orders(id), FOREIGN KEY(product_id) REFERENCES products(id))''')
+    c.execute('''CREATE TABLE admins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)''')
+    categories = [('الرجال','👔'),('النساء','👗'),('الأطفال','👶'),('أحذية','👟'),('إكسسوارات','🧢'),('ملابس رياضية','⛹️')]
     c.executemany('INSERT INTO categories (name, icon) VALUES (?, ?)', categories)
-    
-    # إدراج منتجات نموذجية
     sample_products = [
-        ('تيشيرت كوتن كلاسيكي', 150, 'رجالي', 'S, M, L, XL', 'أسود, أبيض, أزرق', 'قطن 100%', 'رجالي', 'تيشيرت عالي الجودة مصنوع من قطن خالص', 100, '', 4.5, 23),
-        ('فستان سهرة أنيق', 450, 'نسائي', 'XS, S, M, L', 'أحمر, أسود, بيج', 'حرير مخلوط', 'نسائي', 'فستان فاخر مناسب للمناسبات الخاصة', 45, '', 4.8, 67),
-        ('بنطال جينز مرن', 280, 'رجالي', 'M, L, XL, XXL', 'أزرق داكن, أسود', 'جينز مرن', 'رجالي', 'بنطال جينز مريح وعصري', 80, '', 4.6, 45),
-        ('حجاب شيفون فاخر', 120, 'إكسسوارات', 'موحد', 'أحمر, عنابي, أسود, بيج', 'شيفون ناعم', 'نسائي', 'حجاب شيفون فاخر وناعم الملمس', 150, '', 4.7, 89),
-        ('حذاء رياضي براق', 450, 'أحذية', '36-45', 'أبيض, أسود, رمادي', 'جلد صناعي مريح', 'موحد', 'حذاء رياضي مريح مع دعم عالي وتصميم عصري', 120, '', 4.4, 56),
-        ('جاكت شتوي فخم', 550, 'رجالي', 'M, L, XL', 'أسود, بني, رمادي', 'صوف مخلوط', 'رجالي', 'جاكت شتوي فاخر وفخم', 40, '', 4.9, 78),
-        ('فستان كاجوال', 250, 'نسائي', 'S, M, L', 'أزرق فاتح, بيج, وردي', 'قطن مزيج', 'نسائي', 'فستان مريح للارتداء اليومي', 90, '', 4.3, 34),
-        ('شورت صيفي', 180, 'رجالي', 'S, M, L, XL', 'أزرق, رمادي, أسود', 'قطن خفيف', 'رجالي', 'شورت صيفي مريح وخفيف', 110, '', 4.2, 29),
+        ('تيشيرت أسود', 149, 'الرجال', 'S,M,L,XL', 'أسود', 'قطن 100%', 'رجالي', 'تيشيرت كلاسيكي عالي الجودة', 100, 'tshirt_black', 4.5, 23),
+        ('هودي بيج', 219, 'الرجال', 'S,M,L,XL', 'بيج', 'قطن مزيج', 'رجالي', 'هودي مريح للإرتداء اليومي', 80, 'hoodie_beige', 4.7, 45),
+        ('قميص أسود', 179, 'الرجال', 'S,M,L,XL', 'أسود', 'قطن ناعم', 'رجالي', 'قميص أنيق مناسب لكل المناسبات', 60, 'shirt_black', 4.6, 38),
+        ('تيشيرت أبيض', 129, 'الرجال', 'S,M,L,XL', 'أبيض', 'قطن خالص', 'رجالي', 'تيشيرت أبيض كلاسيكي', 90, 'tshirt_white', 4.3, 29),
+        ('جاكيت كاجوال', 279, 'الرجال', 'M,L,XL', 'بيج', 'قماش ممزوج', 'رجالي', 'جاكيت خفيف مناسب للربيع', 40, 'jacket_beige', 4.8, 67),
+        ('بنطال جينز', 199, 'الرجال', 'M,L,XL,XXL', 'أزرق داكن', 'جينز مرن', 'رجالي', 'بنطال جينز عصري ومريح', 70, 'jeans', 4.4, 52),
+        ('فستان سهرة', 450, 'النساء', 'XS,S,M,L', 'أسود', 'حرير مخلوط', 'نسائي', 'فستان فاخر للمناسبات', 30, 'dress', 4.9, 78),
+        ('حذاء رياضي', 350, 'أحذية', '36-45', 'أبيض', 'جلد صناعي', 'موحد', 'حذاء رياضي مريح وعصري', 50, 'sneaker', 4.5, 41),
     ]
-    c.executemany('''
-        INSERT INTO products (name, price, category, size, color, material, gender, description, stock, image, rating, reviews)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', sample_products)
-    
-    # إضافة أدمن افتراضي
+    c.executemany('''INSERT INTO products (name,price,category,size,color,material,gender,description,stock,image,rating,reviews)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', sample_products)
     admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
     c.execute('INSERT INTO admins (username, password) VALUES (?, ?)', ('admin', admin_password))
-    
     conn.commit()
     conn.close()
- 
-# ============ دوال مساعدة ============
  
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -139,1070 +67,991 @@ def get_db():
 def hash_pwd(pwd):
     return hashlib.sha256(pwd.encode()).hexdigest()
  
-# ============ الصفحات الرئيسية ============
- 
+# ============ الصفحة الرئيسية ============
 @app.route('/')
 def index():
-    """الصفحة الرئيسية"""
     conn = get_db()
     c = conn.cursor()
-    
     category = request.args.get('category', '')
     search = request.args.get('search', '')
-    
     query = 'SELECT * FROM products WHERE stock > 0'
-    
+    params = []
     if category:
-        query += f" AND category = '{category}'"
+        query += ' AND category = ?'
+        params.append(category)
     if search:
-        query += f" AND (name LIKE '%{search}%' OR description LIKE '%{search}%')"
-    
-    c.execute(query)
+        query += ' AND (name LIKE ? OR description LIKE ?)'
+        params.append(f'%{search}%')
+        params.append(f'%{search}%')
+    c.execute(query, params)
     products = c.fetchall()
-    
     c.execute('SELECT * FROM categories ORDER BY name')
     categories = c.fetchall()
-    
     conn.close()
-    
-    html = '''<!DOCTYPE html>
+ 
+    # emoji mapping for product placeholders
+    emoji_map = {
+        'tshirt_black': '🖤', 'tshirt_white': '🤍', 'hoodie_beige': '🧥',
+        'shirt_black': '👔', 'jacket_beige': '🧣', 'jeans': '👖',
+        'dress': '👗', 'sneaker': '👟'
+    }
+ 
+    products_html = ''
+    for p in products:
+        emoji = emoji_map.get(p['image'], '👕')
+        stars = '★' * int(p['rating']) + '☆' * (5 - int(p['rating']))
+        products_html += f'''
+        <div class="product-card">
+            <div class="card-img">
+                <span class="card-emoji">{emoji}</span>
+                <button class="wishlist-btn" onclick="toggleWish(this)">♡</button>
+                <div class="card-overlay">
+                    <button class="quick-add" onclick="showToast()">أضف للسلة</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-cat">{p['category']}</p>
+                <h3 class="card-name">{p['name']}</h3>
+                <div class="card-footer">
+                    <span class="card-price">{p['price']:.0f} ر.س</span>
+                    <span class="card-stars">{stars}</span>
+                </div>
+            </div>
+        </div>'''
+ 
+    cats_html = f'<a href="/" class="cat-pill {"active" if not category else ""}">الكل</a>'
+    for cat in categories:
+        active = 'active' if category == cat['name'] else ''
+        cats_html += f'<a href="/?category={cat["name"]}" class="cat-pill {active}">{cat["name"]}</a>'
+ 
+    html = f'''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VESTIQUE - متجر الملابس الحديث</title>
-    <style>
-        :root {
-            --primary: #1a1a2e;
-            --accent: #e94560;
-            --light: #f8f9fa;
-            --text: #333;
-            --border: #e0e0e0;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Cairo', 'Segoe UI', sans-serif;
-            background: var(--light);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, #2d2d44 100%);
-            color: white;
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            color: var(--accent);
-            text-decoration: none;
-        }
-        
-        .search-box {
-            flex: 1;
-            max-width: 400px;
-            margin: 0 30px;
-            display: flex;
-            gap: 8px;
-        }
-        
-        .search-box input {
-            flex: 1;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255,255,255,0.9);
-        }
-        
-        .search-box button {
-            padding: 10px 20px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .admin-btn {
-            padding: 8px 16px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        
-        .filters a {
-            padding: 10px 20px;
-            background: var(--light);
-            color: var(--text);
-            text-decoration: none;
-            border-radius: 25px;
-            border: 2px solid var(--border);
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        
-        .filters a:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-        
-        .filters a.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-        
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-        
-        .product-card {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-        }
-        
-        .product-image {
-            width: 100%;
-            height: 280px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 80px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .product-image::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
-            animation: drift 20s linear infinite;
-        }
-        
-        @keyframes drift {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-        
-        .product-info {
-            padding: 20px;
-        }
-        
-        .product-name {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: var(--primary);
-        }
-        
-        .product-desc {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-        
-        .product-meta {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .product-meta span {
-            background: var(--light);
-            padding: 4px 10px;
-            border-radius: 3px;
-        }
-        
-        .product-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
-        }
-        
-        .product-price {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--accent);
-        }
-        
-        .product-rating {
-            font-size: 13px;
-            color: #ffc107;
-        }
-        
-        .btn-add {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn-add:hover {
-            background: var(--accent);
-        }
-        
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 10px;
-            color: #999;
-        }
-        
-        .empty h2 {
-            margin-bottom: 10px;
-        }
-        
-        footer {
-            background: var(--primary);
-            color: white;
-            text-align: center;
-            padding: 30px 20px;
-            margin-top: 50px;
-        }
-        
-        .admin-link {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            padding: 15px 25px;
-            background: var(--accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
-            font-weight: 600;
-            z-index: 50;
-        }
-        
-        .admin-link:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(233, 69, 96, 0.6);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VESTIQUE — أزياء تعبر عنك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {{
+    --black: #0d0d0d;
+    --white: #f5f0eb;
+    --beige: #c8b99a;
+    --beige-light: #e8dfd3;
+    --beige-dark: #a09070;
+    --gray: #6b6b6b;
+    --gray-light: #ebebeb;
+    --accent: #1a1a1a;
+}}
+ 
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+ 
+body {{
+    font-family: 'Tajawal', sans-serif;
+    background: var(--white);
+    color: var(--black);
+    line-height: 1.6;
+}}
+ 
+/* ====== NAVBAR ====== */
+nav {{
+    position: fixed; top: 0; width: 100%; z-index: 1000;
+    background: var(--black);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 64px;
+    border-bottom: 1px solid #222;
+}}
+ 
+.nav-logo {{
+    font-size: 22px; font-weight: 900; letter-spacing: 4px;
+    color: var(--white); text-decoration: none;
+}}
+ 
+.nav-links {{
+    display: flex; gap: 28px; list-style: none;
+}}
+ 
+.nav-links a {{
+    color: #aaa; text-decoration: none; font-size: 14px;
+    font-weight: 500; letter-spacing: 1px;
+    transition: color 0.2s;
+}}
+ 
+.nav-links a:hover {{ color: var(--white); }}
+ 
+.nav-icons {{
+    display: flex; gap: 20px; align-items: center;
+}}
+ 
+.nav-icons a {{
+    color: #aaa; text-decoration: none; font-size: 18px;
+    transition: color 0.2s;
+}}
+ 
+.nav-icons a:hover {{ color: var(--white); }}
+ 
+/* ====== HERO ====== */
+.hero {{
+    margin-top: 64px;
+    background: var(--black);
+    min-height: 88vh;
+    display: grid; grid-template-columns: 1fr 1fr;
+    position: relative; overflow: hidden;
+}}
+ 
+.hero-content {{
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 80px 60px;
+    z-index: 2;
+}}
+ 
+.hero-tag {{
+    font-size: 12px; letter-spacing: 4px; color: var(--beige);
+    text-transform: uppercase; margin-bottom: 20px;
+    font-weight: 500;
+}}
+ 
+.hero-title {{
+    font-size: clamp(42px, 5vw, 72px);
+    font-weight: 900; line-height: 1.05;
+    color: var(--white);
+    margin-bottom: 24px;
+}}
+ 
+.hero-title span {{
+    color: var(--beige);
+    font-style: italic;
+}}
+ 
+.hero-sub {{
+    color: #888; font-size: 16px; margin-bottom: 48px;
+    max-width: 380px; line-height: 1.8;
+}}
+ 
+.hero-btns {{
+    display: flex; gap: 16px; flex-wrap: wrap;
+}}
+ 
+.btn-primary {{
+    padding: 16px 36px;
+    background: var(--white); color: var(--black);
+    border: none; border-radius: 2px;
+    font-size: 14px; font-weight: 700; letter-spacing: 2px;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.3s;
+    text-transform: uppercase;
+}}
+ 
+.btn-primary:hover {{
+    background: var(--beige);
+}}
+ 
+.btn-outline {{
+    padding: 16px 36px;
+    background: transparent; color: var(--white);
+    border: 1px solid #444; border-radius: 2px;
+    font-size: 14px; font-weight: 500; letter-spacing: 2px;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.3s;
+    text-transform: uppercase;
+}}
+ 
+.btn-outline:hover {{
+    border-color: var(--beige); color: var(--beige);
+}}
+ 
+.hero-visual {{
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2520 100%);
+    position: relative; overflow: hidden;
+    font-size: 220px;
+}}
+ 
+.hero-visual::before {{
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(200,185,154,0.15) 0%, transparent 70%);
+}}
+ 
+.hero-badge {{
+    position: absolute; bottom: 40px; right: 40px;
+    background: var(--beige); color: var(--black);
+    padding: 16px 24px; border-radius: 2px;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase;
+}}
+ 
+.hero-dots {{
+    position: absolute; bottom: 40px; left: 60px;
+    display: flex; gap: 8px;
+}}
+ 
+.hero-dots span {{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #444; cursor: pointer; transition: 0.3s;
+}}
+ 
+.hero-dots span.active {{ background: var(--beige); width: 24px; border-radius: 4px; }}
+ 
+/* ====== CATEGORIES ====== */
+.section {{
+    padding: 80px 40px;
+    max-width: 1300px; margin: 0 auto;
+}}
+ 
+.section-header {{
+    display: flex; align-items: baseline;
+    justify-content: space-between; margin-bottom: 40px;
+}}
+ 
+.section-title {{
+    font-size: 28px; font-weight: 800; letter-spacing: 1px;
+}}
+ 
+.section-link {{
+    color: var(--gray); font-size: 13px; text-decoration: none;
+    letter-spacing: 1px; border-bottom: 1px solid var(--gray);
+    padding-bottom: 2px; transition: 0.2s;
+}}
+ 
+.section-link:hover {{ color: var(--black); border-color: var(--black); }}
+ 
+.categories-grid {{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}}
+ 
+.cat-card {{
+    background: var(--black);
+    border-radius: 4px; overflow: hidden;
+    cursor: pointer; text-decoration: none;
+    position: relative; height: 200px;
+    display: flex; align-items: flex-end;
+    padding: 20px;
+    transition: transform 0.3s;
+}}
+ 
+.cat-card:hover {{ transform: scale(1.02); }}
+ 
+.cat-card-emoji {{
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; opacity: 0.6;
+}}
+ 
+.cat-card-info {{
+    position: relative; z-index: 2;
+}}
+ 
+.cat-card-name {{
+    color: var(--white); font-size: 18px; font-weight: 800;
+    display: block; margin-bottom: 4px;
+}}
+ 
+.cat-card-link {{
+    color: var(--beige); font-size: 12px; letter-spacing: 1px;
+}}
+ 
+.cat-card:nth-child(1) {{ background: #1a1a1a; }}
+.cat-card:nth-child(2) {{ background: #2d2520; }}
+.cat-card:nth-child(3) {{ background: #1e2228; }}
+.cat-card:nth-child(4) {{ background: #221a1a; }}
+ 
+/* ====== PROMO BANNER ====== */
+.promo-grid {{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; padding: 0 40px 80px;
+    max-width: 1300px; margin: 0 auto;
+}}
+ 
+.promo-card {{
+    border-radius: 4px; overflow: hidden;
+    position: relative; height: 300px;
+    display: flex; align-items: center;
+    padding: 40px;
+    cursor: pointer;
+}}
+ 
+.promo-card:nth-child(1) {{
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+}}
+ 
+.promo-card:nth-child(2) {{
+    background: linear-gradient(135deg, #c8b99a 0%, #a09070 100%);
+}}
+ 
+.promo-card-emoji {{
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: flex-end;
+    font-size: 120px; padding: 20px; opacity: 0.3;
+}}
+ 
+.promo-content {{ position: relative; z-index: 2; }}
+ 
+.promo-discount {{
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 12px; font-weight: 600;
+}}
+ 
+.promo-card:nth-child(1) .promo-discount {{ color: var(--beige); }}
+.promo-card:nth-child(2) .promo-discount {{ color: var(--black); }}
+ 
+.promo-big {{
+    font-size: 52px; font-weight: 900; line-height: 1;
+    margin-bottom: 8px;
+}}
+ 
+.promo-card:nth-child(1) .promo-big {{ color: var(--white); }}
+.promo-card:nth-child(2) .promo-big {{ color: var(--black); }}
+ 
+.promo-sub {{
+    font-size: 13px; margin-bottom: 24px;
+}}
+ 
+.promo-card:nth-child(1) .promo-sub {{ color: #888; }}
+.promo-card:nth-child(2) .promo-sub {{ color: #555; }}
+ 
+.promo-btn {{
+    display: inline-block; padding: 10px 24px;
+    font-size: 12px; letter-spacing: 2px; font-weight: 700;
+    text-transform: uppercase; border-radius: 2px;
+    text-decoration: none; transition: 0.3s;
+}}
+ 
+.promo-card:nth-child(1) .promo-btn {{
+    background: var(--white); color: var(--black);
+}}
+ 
+.promo-card:nth-child(2) .promo-btn {{
+    background: var(--black); color: var(--white);
+}}
+ 
+/* ====== FILTER PILLS ====== */
+.filters-bar {{
+    display: flex; gap: 10px; flex-wrap: wrap;
+    padding: 0 40px; margin-bottom: 40px;
+    max-width: 1300px; margin-left: auto; margin-right: auto;
+    padding-bottom: 0;
+}}
+ 
+.cat-pill {{
+    padding: 8px 20px; border-radius: 100px;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.5px;
+    cursor: pointer; text-decoration: none;
+    border: 1.5px solid var(--gray-light);
+    color: var(--gray); background: transparent;
+    transition: all 0.2s;
+}}
+ 
+.cat-pill:hover, .cat-pill.active {{
+    background: var(--black); color: var(--white);
+    border-color: var(--black);
+}}
+ 
+/* ====== PRODUCTS GRID ====== */
+.products-section {{
+    padding: 0 40px 80px;
+    max-width: 1300px; margin: 0 auto;
+}}
+ 
+.products-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+}}
+ 
+.product-card {{
+    background: white;
+    border-radius: 4px; overflow: hidden;
+    transition: box-shadow 0.3s;
+    cursor: pointer;
+}}
+ 
+.product-card:hover {{
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}}
+ 
+.card-img {{
+    background: var(--gray-light);
+    height: 280px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+}}
+ 
+.card-emoji {{
+    font-size: 80px; transition: transform 0.3s;
+    display: block;
+}}
+ 
+.product-card:hover .card-emoji {{ transform: scale(1.1); }}
+ 
+.wishlist-btn {{
+    position: absolute; top: 12px; right: 12px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: white; border: none; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: 0.2s;
+}}
+ 
+.wishlist-btn:hover {{ transform: scale(1.1); }}
+.wishlist-btn.active {{ color: #e94560; }}
+ 
+.card-overlay {{
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 16px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    transform: translateY(100%);
+    transition: transform 0.3s;
+}}
+ 
+.product-card:hover .card-overlay {{ transform: translateY(0); }}
+ 
+.quick-add {{
+    width: 100%; padding: 10px;
+    background: var(--white); color: var(--black);
+    border: none; border-radius: 2px; cursor: pointer;
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; transition: 0.2s;
+}}
+ 
+.quick-add:hover {{ background: var(--beige); }}
+ 
+.card-body {{ padding: 16px; }}
+ 
+.card-cat {{
+    font-size: 11px; letter-spacing: 2px; color: var(--gray);
+    text-transform: uppercase; margin-bottom: 6px;
+}}
+ 
+.card-name {{
+    font-size: 15px; font-weight: 700; margin-bottom: 10px;
+    color: var(--black); line-height: 1.3;
+}}
+ 
+.card-footer {{
+    display: flex; align-items: center; justify-content: space-between;
+}}
+ 
+.card-price {{
+    font-size: 17px; font-weight: 800; color: var(--black);
+}}
+ 
+.card-stars {{
+    font-size: 12px; color: var(--beige-dark); letter-spacing: 1px;
+}}
+ 
+/* ====== FEATURES BAR ====== */
+.features-bar {{
+    background: var(--black);
+    padding: 40px;
+}}
+ 
+.features-inner {{
+    max-width: 1300px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+}}
+ 
+.feature-item {{
+    text-align: center; color: var(--white);
+}}
+ 
+.feature-icon {{
+    font-size: 28px; margin-bottom: 12px; display: block;
+}}
+ 
+.feature-title {{
+    font-size: 14px; font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 4px;
+}}
+ 
+.feature-sub {{
+    font-size: 12px; color: #666;
+}}
+ 
+/* ====== SEARCH IN NAV ====== */
+.search-form {{
+    display: flex; align-items: center; gap: 8px;
+}}
+ 
+.search-form input {{
+    background: #1a1a1a; border: 1px solid #333;
+    color: white; padding: 6px 14px;
+    border-radius: 2px; font-size: 13px;
+    outline: none; width: 180px;
+}}
+ 
+.search-form input::placeholder {{ color: #555; }}
+ 
+.search-form button {{
+    background: none; border: none;
+    color: #888; cursor: pointer; font-size: 16px;
+}}
+ 
+/* ====== TOAST ====== */
+.toast {{
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--black); color: white;
+    padding: 14px 28px; border-radius: 4px;
+    font-size: 14px; font-weight: 500;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 9999; pointer-events: none;
+    border: 1px solid #333;
+}}
+ 
+.toast.show {{ transform: translateX(-50%) translateY(0); }}
+ 
+footer {{
+    background: #0a0a0a; color: #444;
+    text-align: center; padding: 24px;
+    font-size: 13px; letter-spacing: 1px;
+}}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <a href="/" class="logo">VESTIQUE</a>
-            <div class="search-box">
-                <form style="display: flex; gap: 8px; width: 100%;">
-                    <input type="text" name="search" placeholder="ابحث عن منتج..." value="''' + search + '''">
-                    <button type="submit">🔍</button>
-                </form>
-            </div>
-            <a href="/admin" class="admin-btn">⚙️ لوحة التحكم</a>
+ 
+<!-- NAVBAR -->
+<nav>
+    <a href="/" class="nav-logo">VESTIQUE</a>
+    <ul class="nav-links">
+        <li><a href="/?category=الرجال">الرجال</a></li>
+        <li><a href="/?category=النساء">النساء</a></li>
+        <li><a href="/?category=الأطفال">الأطفال</a></li>
+        <li><a href="/?category=أحذية">أحذية</a></li>
+        <li><a href="/?category=إكسسوارات">إكسسوارات</a></li>
+        <li><a href="#">العروض</a></li>
+        <li><a href="#">اتصل بنا</a></li>
+    </ul>
+    <div class="nav-icons">
+        <form class="search-form" method="GET" action="/">
+            <input type="text" name="search" placeholder="بحث..." value="{search}">
+            <button type="submit">🔍</button>
+        </form>
+        <a href="/admin" title="لوحة التحكم">⚙️</a>
+        <a href="#" title="المفضلة">♡</a>
+        <a href="#" title="السلة">🛍</a>
+    </div>
+</nav>
+ 
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <p class="hero-tag">مجموعة صيف 2024</p>
+        <h1 class="hero-title">أزياء<br><span>تعبّر</span><br>عنك</h1>
+        <p class="hero-sub">اكتشف أحدث التشكيلات لصيف 2024 — أناقة حقيقية لكل يوم</p>
+        <div class="hero-btns">
+            <a href="/?category=الرجال" class="btn-primary">تسوق الآن</a>
+            <a href="#products" class="btn-outline">استكشف المجموعة</a>
         </div>
-    </header>
-    
-    <div class="container">
-        <div class="filters">
-            <a href="/" class="''' + ('active' if not category else '') + '''">جميع المنتجات</a>
-    '''
-    
-    for cat in categories:
-        html += f'<a href="/?category={cat["name"]}" class="' + ('active' if category == cat["name"] else '') + f'">{cat["icon"]} {cat["name"]}</a>'
-    
-    html += '''
-        </div>
-        
-        <div class="products-grid">
-    '''
-    
-    if products:
-        for p in products:
-            rating_stars = '⭐' * int(p['rating'])
-            html += f'''
-                <div class="product-card">
-                    <div class="product-image">{['👕', '👗', '👶', '👟', '⌚', '⛹️'][hash(p['name']) % 6]}</div>
-                    <div class="product-info">
-                        <div class="product-name">{p['name']}</div>
-                        <div class="product-desc">{p['description']}</div>
-                        <div class="product-meta">
-                            <span>المقاس: {p['size']}</span>
-                            <span>لون: {p['color']}</span>
-                        </div>
-                        <div class="product-footer">
-                            <div>
-                                <div class="product-price">{p['price']:.0f} ج.م</div>
-                                <div class="product-rating">{rating_stars} ({p['reviews']})</div>
-                            </div>
-                            <button class="btn-add" onclick="alert('تمت الإضافة للسلة!')">أضف</button>
-                        </div>
-                    </div>
-                </div>
-            '''
-    else:
-        html += '<div class="empty" style="grid-column: 1/-1;"><h2>لا توجد منتجات متاحة</h2></div>'
-    
-    html += '''
+        <div class="hero-dots" style="position:relative;bottom:auto;left:auto;margin-top:60px;">
+            <span class="active"></span><span></span><span></span>
         </div>
     </div>
-    
-    <footer>
-        <p>&copy; 2024 VESTIQUE - متجر الملابس الحديث. جميع الحقوق محفوظة.</p>
-    </footer>
-    
-    <a href="/admin" class="admin-link">⚙️</a>
+    <div class="hero-visual">
+        👔
+        <div class="hero-badge">جديد — صيف 2024</div>
+    </div>
+</section>
+ 
+<!-- CATEGORIES -->
+<div class="section">
+    <div class="section-header">
+        <h2 class="section-title">تسوق حسب الفئة</h2>
+        <a href="/" class="section-link">عرض الكل ←</a>
+    </div>
+    <div class="categories-grid">
+        <a href="/?category=الرجال" class="cat-card">
+            <div class="cat-card-emoji">👔</div>
+            <div class="cat-card-info">
+                <span class="cat-card-name">رجال</span>
+                <span class="cat-card-link">تسوق الآن ›</span>
+            </div>
+        </a>
+        <a href="/?category=النساء" class="cat-card">
+            <div class="cat-card-emoji">👗</div>
+            <div class="cat-card-info">
+                <span class="cat-card-name">نساء</span>
+                <span class="cat-card-link">تسوق الآن ›</span>
+            </div>
+        </a>
+        <a href="/?category=الأطفال" class="cat-card">
+            <div class="cat-card-emoji">👶</div>
+            <div class="cat-card-info">
+                <span class="cat-card-name">أطفال</span>
+                <span class="cat-card-link">تسوق الآن ›</span>
+            </div>
+        </a>
+        <a href="/?category=إكسسوارات" class="cat-card">
+            <div class="cat-card-emoji">🧢</div>
+            <div class="cat-card-info">
+                <span class="cat-card-name">إكسسوارات</span>
+                <span class="cat-card-link">تسوق الآن ›</span>
+            </div>
+        </a>
+    </div>
+</div>
+ 
+<!-- PROMO BANNERS -->
+<div class="promo-grid">
+    <div class="promo-card">
+        <div class="promo-card-emoji">🔥</div>
+        <div class="promo-content">
+            <p class="promo-discount">خصم حتى</p>
+            <p class="promo-big">50%</p>
+            <p class="promo-sub">على مجموعة مختارة</p>
+            <a href="/" class="promo-btn">تسوق الآن</a>
+        </div>
+    </div>
+    <div class="promo-card">
+        <div class="promo-card-emoji">✨</div>
+        <div class="promo-content">
+            <p class="promo-discount">وصل حديثاً</p>
+            <p class="promo-big">مجموعة<br>الصيف</p>
+            <p class="promo-sub">الجديدة</p>
+            <a href="/?category=الرجال" class="promo-btn">تسوق الآن ›</a>
+        </div>
+    </div>
+</div>
+ 
+<!-- PRODUCTS -->
+<div id="products" class="section" style="padding-top:0">
+    <div class="section-header">
+        <h2 class="section-title">الأكثر مبيعاً</h2>
+        <a href="/" class="section-link">عرض الكل ←</a>
+    </div>
+</div>
+ 
+<div class="filters-bar" style="margin-bottom:24px;">
+    {cats_html}
+</div>
+ 
+<div class="products-section">
+    <div class="products-grid">
+        {products_html if products_html else '<p style="color:#999;text-align:center;grid-column:1/-1;padding:60px">لا توجد منتجات</p>'}
+    </div>
+    <div style="text-align:center;margin-top:48px;">
+        <a href="/" class="btn-primary" style="display:inline-block;">عرض المزيد</a>
+    </div>
+</div>
+ 
+<!-- FEATURES BAR -->
+<div class="features-bar">
+    <div class="features-inner">
+        <div class="feature-item">
+            <span class="feature-icon">🛡️</span>
+            <p class="feature-title">دفع آمن 100%</p>
+            <p class="feature-sub">مع ضمان حماية بياناتك</p>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">🚚</span>
+            <p class="feature-title">شحن سريع</p>
+            <p class="feature-sub">توصيل خلال 2-2 أيام</p>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">↩️</span>
+            <p class="feature-title">إرجاع سهل</p>
+            <p class="feature-sub">إرجاع مجاني خلال 14 يوم</p>
+        </div>
+        <div class="feature-item">
+            <span class="feature-icon">🎧</span>
+            <p class="feature-title">خدمة العملاء</p>
+            <p class="feature-sub">متاح 24/7 لمساعدتك</p>
+        </div>
+    </div>
+</div>
+ 
+<footer>
+    <p style="letter-spacing:3px;font-size:11px;">© 2024 VESTIQUE — جميع الحقوق محفوظة</p>
+</footer>
+ 
+<div class="toast" id="toast">✓ تمت الإضافة للسلة</div>
+ 
+<script>
+function showToast() {{
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}}
+ 
+function toggleWish(btn) {{
+    btn.classList.toggle('active');
+    btn.textContent = btn.classList.contains('active') ? '♥' : '♡';
+}}
+</script>
 </body>
-</html>
-    '''
-    
+</html>'''
     return html
  
-# ============ لوحة التحكم ============
- 
+# ============ لوحة التحكم (نفس الكود) ============
 @app.route('/admin')
 def admin_login():
-    """صفحة دخول الأدمن"""
     html = '''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل دخول - لوحة التحكم</title>
+    <title>لوحة التحكم</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #e94560 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        
-        .login-container {
-            background: white;
-            padding: 50px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .login-container h1 {
-            text-align: center;
-            color: #1a1a2e;
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
-        
-        .login-container p {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #e94560;
-            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #e94560 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(233, 69, 96, 0.4);
-        }
+        body { font-family: 'Tajawal', sans-serif; background: #0d0d0d;
+               display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #1a1a1a; padding: 50px; border-radius: 4px;
+               width: 100%; max-width: 380px; border: 1px solid #2a2a2a; }
+        h1 { color: #f5f0eb; text-align: center; margin-bottom: 8px; font-size: 24px; }
+        p { color: #555; text-align: center; margin-bottom: 32px; font-size: 13px; }
+        label { display: block; color: #888; font-size: 12px; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; background: #0d0d0d; border: 1px solid #2a2a2a;
+                color: white; border-radius: 2px; font-size: 14px; margin-bottom: 20px; outline: none; }
+        input:focus { border-color: #c8b99a; }
+        button { width: 100%; padding: 14px; background: #f5f0eb; color: #0d0d0d;
+                 border: none; border-radius: 2px; font-size: 14px; font-weight: 700;
+                 letter-spacing: 2px; cursor: pointer; text-transform: uppercase; }
+        button:hover { background: #c8b99a; }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>🔐 لوحة التحكم</h1>
-        <p>تسجيل الدخول لإدارة المتجر</p>
-        
+    <div class="box">
+        <h1>VESTIQUE</h1>
+        <p>تسجيل الدخول للوحة التحكم</p>
         <form method="POST" action="/admin/login">
-            <div class="form-group">
-                <label for="username">اسم المستخدم</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">كلمة المرور</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            
-            <button type="submit" class="btn-login">دخول</button>
+            <label>اسم المستخدم</label>
+            <input type="text" name="username" required>
+            <label>كلمة المرور</label>
+            <input type="password" name="password" required>
+            <button type="submit">دخول</button>
         </form>
     </div>
 </body>
-</html>
-    '''
+</html>'''
     return html
  
 @app.route('/admin/login', methods=['POST'])
 def admin_login_post():
-    """معالجة دخول الأدمن"""
     username = request.form.get('username', '')
     password = request.form.get('password', '')
-    
     conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM admins WHERE username = ?', (username,))
     admin = c.fetchone()
     conn.close()
-    
     if admin and admin['password'] == hash_pwd(password):
         session['admin'] = True
         return redirect('/admin/dashboard')
-    
-    return '''
-    <html dir="rtl">
-    <body style="font-family: Cairo; text-align: center; padding: 50px;">
-        <h1 style="color: red;">❌ بيانات غير صحيحة</h1>
-        <p>اسم المستخدم أو كلمة المرور غير صحيحة</p>
-        <a href="/admin" style="padding: 10px 20px; background: #e94560; color: white; text-decoration: none; border-radius: 5px;">← العودة</a>
-    </body>
-    </html>
-    '''
+    return '<html dir="rtl"><body style="font-family:Tajawal;text-align:center;padding:50px;background:#0d0d0d;color:white;"><h1>❌ بيانات غير صحيحة</h1><a href="/admin" style="color:#c8b99a;">← العودة</a></body></html>'
  
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    """لوحة التحكم الرئيسية"""
     if not session.get('admin'):
         return redirect('/admin')
-    
     conn = get_db()
     c = conn.cursor()
-    
     c.execute('SELECT COUNT(*) as count FROM products')
     product_count = c.fetchone()['count']
-    
     c.execute('SELECT COUNT(*) as count FROM orders')
     order_count = c.fetchone()['count']
-    
     c.execute('SELECT SUM(total_price) as total FROM orders')
     total = c.fetchone()['total'] or 0
-    
     conn.close()
-    
     html = f'''<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
-    <style>
-        :root {{
-            --primary: #1a1a2e;
-            --accent: #e94560;
-            --light: #f8f9fa;
-        }}
-        
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        
-        body {{
-            font-family: 'Cairo', sans-serif;
-            background: var(--light);
-        }}
-        
-        header {{
-            background: var(--primary);
-            color: white;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-        
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }}
-        
-        .stats {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }}
-        
-        .stat-box {{
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 5px solid var(--accent);
-        }}
-        
-        .stat-box h3 {{
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }}
-        
-        .stat-box .number {{
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--accent);
-        }}
-        
-        .nav-buttons {{
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }}
-        
-        .nav-buttons a {{
-            padding: 12px 25px;
-            background: var(--accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }}
-        
-        .nav-buttons a:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.3);
-        }}
-        
-        .logout {{
-            padding: 10px 20px;
-            background: #999;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }}
-        
-        .logout:hover {{
-            background: #666;
-        }}
-    </style>
+<head><meta charset="UTF-8"><title>لوحة التحكم</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* {{ margin:0; padding:0; box-sizing:border-box; }}
+body {{ font-family:'Tajawal',sans-serif; background:#0d0d0d; color:white; }}
+header {{ background:#1a1a1a; padding:20px 40px; border-bottom:1px solid #2a2a2a;
+          display:flex; justify-content:space-between; align-items:center; }}
+header h1 {{ font-size:20px; letter-spacing:2px; color:#f5f0eb; }}
+.logout {{ color:#555; text-decoration:none; font-size:13px; border:1px solid #333;
+           padding:8px 16px; border-radius:2px; transition:0.2s; }}
+.logout:hover {{ color:white; border-color:#555; }}
+.container {{ max-width:1100px; margin:0 auto; padding:40px 20px; }}
+.stats {{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:40px; }}
+.stat {{ background:#1a1a1a; border:1px solid #2a2a2a; padding:28px; border-radius:4px; }}
+.stat h3 {{ color:#555; font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }}
+.stat .num {{ font-size:36px; font-weight:900; color:#c8b99a; }}
+.nav-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }}
+.nav-card {{ background:#1a1a1a; border:1px solid #2a2a2a; padding:24px;
+             border-radius:4px; text-decoration:none; color:white; transition:0.2s; }}
+.nav-card:hover {{ border-color:#c8b99a; }}
+.nav-card h3 {{ font-size:16px; margin-bottom:8px; }}
+.nav-card p {{ color:#555; font-size:13px; }}
+</style>
 </head>
 <body>
-    <header>
-        <h1>👗 لوحة التحكم - VESTIQUE</h1>
-        <a href="/admin/logout" class="logout">تسجيل خروج</a>
-    </header>
-    
-    <div class="container">
-        <div class="stats">
-            <div class="stat-box">
-                <h3>عدد المنتجات</h3>
-                <div class="number">{product_count}</div>
-            </div>
-            <div class="stat-box">
-                <h3>عدد الطلبات</h3>
-                <div class="number">{order_count}</div>
-            </div>
-            <div class="stat-box">
-                <h3>إجمالي المبيعات</h3>
-                <div class="number">{total:.0f} ج.م</div>
-            </div>
-        </div>
-        
-        <div class="nav-buttons">
-            <a href="/admin/products">📦 إدارة المنتجات</a>
-            <a href="/admin/categories">📂 إدارة الفئات</a>
-            <a href="/admin/orders">📋 عرض الطلبات</a>
-        </div>
+<header>
+    <h1>VESTIQUE — لوحة التحكم</h1>
+    <a href="/admin/logout" class="logout">تسجيل خروج</a>
+</header>
+<div class="container">
+    <div class="stats">
+        <div class="stat"><h3>المنتجات</h3><div class="num">{product_count}</div></div>
+        <div class="stat"><h3>الطلبات</h3><div class="num">{order_count}</div></div>
+        <div class="stat"><h3>المبيعات</h3><div class="num">{total:.0f} ر.س</div></div>
     </div>
+    <div class="nav-grid">
+        <a href="/admin/products" class="nav-card"><h3>📦 المنتجات</h3><p>إضافة وحذف المنتجات</p></a>
+        <a href="/admin/categories" class="nav-card"><h3>📂 الفئات</h3><p>إدارة فئات المتجر</p></a>
+        <a href="/admin/orders" class="nav-card"><h3>📋 الطلبات</h3><p>عرض وإدارة الطلبات</p></a>
+    </div>
+</div>
 </body>
-</html>
-    '''
+</html>'''
     return html
  
 @app.route('/admin/logout')
 def admin_logout():
-    """تسجيل خروج الأدمن"""
     session.clear()
     return redirect('/admin')
  
-# ============ إدارة المنتجات ============
- 
 @app.route('/admin/products')
 def admin_products():
-    """صفحة إدارة المنتجات"""
     if not session.get('admin'):
         return redirect('/admin')
-    
     conn = get_db()
     c = conn.cursor()
     c.execute('SELECT * FROM products ORDER BY id DESC')
     products = c.fetchall()
     conn.close()
-    
-    products_html = ''
+    rows = ''
     for p in products:
-        products_html += f'''
-            <tr>
-                <td>{p['id']}</td>
-                <td>{p['name']}</td>
-                <td>{p['price']:.0f}</td>
-                <td>{p['category']}</td>
-                <td>{p['stock']}</td>
-                <td>
-                    <a href="/admin/product/{p['id']}/delete" onclick="return confirm('حذف؟')" style="color: red;">حذف</a>
-                </td>
-            </tr>
-        '''
-    
-    html = f'''<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>إدارة المنتجات</title>
-    <style>
-        :root {{ --primary: #1a1a2e; --accent: #e94560; --light: #f8f9fa; }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Cairo', sans-serif; background: var(--light); }}
-        header {{ background: var(--primary); color: white; padding: 20px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 30px 20px; }}
-        .btn {{ padding: 12px 25px; background: var(--accent); color: white; text-decoration: none; border-radius: 8px; margin-bottom: 20px; display: inline-block; font-weight: 600; }}
-        table {{ width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        th {{ background: var(--primary); color: white; padding: 15px; text-align: right; font-weight: 600; }}
-        td {{ padding: 15px; border-bottom: 1px solid #e0e0e0; }}
-        tr:hover {{ background: var(--light); }}
-        a {{ color: var(--accent); text-decoration: none; }}
-    </style>
-</head>
-<body>
-    <header>
-        <h1>إدارة المنتجات</h1>
-    </header>
-    
-    <div class="container">
-        <a href="/admin/product/new" class="btn">+ إضافة منتج جديد</a>
-        <a href="/admin/dashboard" class="btn">← العودة</a>
-        
-        <table>
-            <tr>
-                <th>المعرّف</th>
-                <th>الاسم</th>
-                <th>السعر</th>
-                <th>الفئة</th>
-                <th>المخزون</th>
-                <th>الإجراءات</th>
-            </tr>
-            {products_html}
-        </table>
-    </div>
-</body>
-</html>
-    '''
+        rows += f'<tr><td>{p["id"]}</td><td>{p["name"]}</td><td>{p["price"]:.0f}</td><td>{p["category"]}</td><td>{p["stock"]}</td><td><a href="/admin/product/{p["id"]}/delete" onclick="return confirm(\'حذف؟\')" style="color:#e94560;">حذف</a></td></tr>'
+    html = f'''<!DOCTYPE html><html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><title>المنتجات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:'Tajawal',sans-serif;background:#0d0d0d;color:white}}
+header{{background:#1a1a1a;padding:20px 40px;border-bottom:1px solid #2a2a2a}}
+.container{{max-width:1100px;margin:0 auto;padding:40px 20px}}
+.btn{{display:inline-block;padding:10px 24px;background:#f5f0eb;color:#0d0d0d;text-decoration:none;border-radius:2px;font-weight:700;font-size:13px;letter-spacing:1px;margin-bottom:24px;margin-left:10px}}
+table{{width:100%;border-collapse:collapse;background:#1a1a1a;border-radius:4px;overflow:hidden}}
+th{{background:#111;color:#888;padding:14px;text-align:right;font-size:12px;letter-spacing:1px}}
+td{{padding:14px;border-bottom:1px solid #222;font-size:14px}}
+tr:hover td{{background:#1f1f1f}}a{{color:#c8b99a}}</style>
+</head><body>
+<header><h1 style="font-size:18px;letter-spacing:2px;">إدارة المنتجات</h1></header>
+<div class="container">
+<a href="/admin/product/new" class="btn">+ منتج جديد</a>
+<a href="/admin/dashboard" class="btn" style="background:#2a2a2a;color:white;">← رجوع</a>
+<table><tr><th>ID</th><th>الاسم</th><th>السعر</th><th>الفئة</th><th>المخزون</th><th>حذف</th></tr>{rows}</table>
+</div></body></html>'''
     return html
  
 @app.route('/admin/product/new', methods=['GET', 'POST'])
 def admin_product_new():
-    """إضافة منتج جديد"""
     if not session.get('admin'):
         return redirect('/admin')
-    
     if request.method == 'POST':
-        data = {
-            'name': request.form.get('name'),
-            'price': request.form.get('price'),
-            'category': request.form.get('category'),
-            'size': request.form.get('size'),
-            'color': request.form.get('color'),
-            'material': request.form.get('material'),
-            'gender': request.form.get('gender'),
-            'description': request.form.get('description'),
-            'stock': request.form.get('stock', 0)
-        }
-        
         conn = get_db()
         c = conn.cursor()
-        c.execute('''
-            INSERT INTO products (name, price, category, size, color, material, gender, description, stock)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (data['name'], data['price'], data['category'], data['size'], 
-              data['color'], data['material'], data['gender'], data['description'], data['stock']))
-        conn.commit()
-        conn.close()
-        
+        c.execute('INSERT INTO products (name,price,category,size,color,material,gender,description,stock) VALUES (?,?,?,?,?,?,?,?,?)',
+            (request.form.get('name'), request.form.get('price'), request.form.get('category'),
+             request.form.get('size'), request.form.get('color'), request.form.get('material'),
+             request.form.get('gender'), request.form.get('description'), request.form.get('stock', 0)))
+        conn.commit(); conn.close()
         return redirect('/admin/products')
-    
-    conn = get_db()
-    c = conn.cursor()
+    conn = get_db(); c = conn.cursor()
     c.execute('SELECT name FROM categories')
-    categories = [row['name'] for row in c.fetchall()]
-    conn.close()
-    
-    html = f'''<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>إضافة منتج</title>
-    <style>
-        :root {{ --primary: #1a1a2e; --accent: #e94560; }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Cairo', sans-serif; background: #f8f9fa; }}
-        header {{ background: var(--primary); color: white; padding: 20px; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
-        .form-box {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        .form-group {{ margin-bottom: 20px; }}
-        label {{ display: block; margin-bottom: 8px; font-weight: 600; color: #333; }}
-        input, select, textarea {{ width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }}
-        input:focus, select:focus, textarea:focus {{ outline: none; border-color: var(--accent); }}
-        button {{ width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }}
-        button:hover {{ opacity: 0.9; }}
-    </style>
-</head>
-<body>
-    <header><h1>إضافة منتج جديد</h1></header>
-    
-    <div class="container">
-        <div class="form-box">
-            <form method="POST">
-                <div class="form-group">
-                    <label>اسم المنتج</label>
-                    <input type="text" name="name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>السعر</label>
-                    <input type="number" name="price" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>الفئة</label>
-                    <select name="category" required>
-                        <option>اختر فئة</option>
-                        {''.join([f'<option>{cat}</option>' for cat in categories])}
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>المقاس</label>
-                    <input type="text" name="size" placeholder="S, M, L, XL">
-                </div>
-                
-                <div class="form-group">
-                    <label>اللون</label>
-                    <input type="text" name="color" placeholder="أسود, أبيض, أحمر">
-                </div>
-                
-                <div class="form-group">
-                    <label>المادة</label>
-                    <input type="text" name="material" placeholder="قطن, حرير, صوف">
-                </div>
-                
-                <div class="form-group">
-                    <label>الجنس</label>
-                    <select name="gender">
-                        <option>رجالي</option>
-                        <option>نسائي</option>
-                        <option>أطفال</option>
-                        <option>موحد</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>الوصف</label>
-                    <textarea name="description" rows="4"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>المخزون</label>
-                    <input type="number" name="stock" value="0" required>
-                </div>
-                
-                <button type="submit">حفظ المنتج</button>
-            </form>
-        </div>
-    </div>
-</body>
-</html>
-    '''
+    categories = [row['name'] for row in c.fetchall()]; conn.close()
+    opts = ''.join([f'<option>{cat}</option>' for cat in categories])
+    html = f'''<!DOCTYPE html><html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><title>منتج جديد</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:'Tajawal',sans-serif;background:#0d0d0d;color:white}}
+header{{background:#1a1a1a;padding:20px 40px;border-bottom:1px solid #2a2a2a}}
+.container{{max-width:560px;margin:40px auto;padding:0 20px}}
+.box{{background:#1a1a1a;border:1px solid #2a2a2a;padding:32px;border-radius:4px}}
+label{{display:block;color:#888;font-size:12px;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}}
+input,select,textarea{{width:100%;padding:10px;background:#0d0d0d;border:1px solid #2a2a2a;color:white;border-radius:2px;font-size:14px;margin-bottom:20px;outline:none;font-family:Tajawal}}
+input:focus,select:focus{{border-color:#c8b99a}}
+button{{width:100%;padding:14px;background:#f5f0eb;color:#0d0d0d;border:none;border-radius:2px;font-weight:700;font-size:14px;letter-spacing:2px;cursor:pointer;text-transform:uppercase}}</style>
+</head><body>
+<header><h1 style="font-size:18px;letter-spacing:2px;">إضافة منتج جديد</h1></header>
+<div class="container"><div class="box">
+<form method="POST">
+<label>اسم المنتج</label><input type="text" name="name" required>
+<label>السعر (ر.س)</label><input type="number" name="price" step="0.01" required>
+<label>الفئة</label><select name="category">{opts}</select>
+<label>المقاس</label><input type="text" name="size" placeholder="S, M, L, XL">
+<label>اللون</label><input type="text" name="color" placeholder="أسود, أبيض">
+<label>المادة</label><input type="text" name="material">
+<label>الجنس</label><select name="gender"><option>رجالي</option><option>نسائي</option><option>أطفال</option><option>موحد</option></select>
+<label>الوصف</label><textarea name="description" rows="3"></textarea>
+<label>المخزون</label><input type="number" name="stock" value="0">
+<button type="submit">حفظ المنتج</button>
+</form></div></div></body></html>'''
     return html
  
 @app.route('/admin/product/<int:pid>/delete')
 def admin_product_delete(pid):
-    """حذف منتج"""
-    if not session.get('admin'):
-        return redirect('/admin')
-    
-    conn = get_db()
-    c = conn.cursor()
+    if not session.get('admin'): return redirect('/admin')
+    conn = get_db(); c = conn.cursor()
     c.execute('DELETE FROM products WHERE id = ?', (pid,))
-    conn.commit()
-    conn.close()
-    
+    conn.commit(); conn.close()
     return redirect('/admin/products')
- 
-# ============ إدارة الفئات ============
  
 @app.route('/admin/categories')
 def admin_categories():
-    """إدارة الفئات"""
-    if not session.get('admin'):
-        return redirect('/admin')
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM categories')
-    categories = c.fetchall()
-    conn.close()
-    
-    cat_html = ''
-    for cat in categories:
-        cat_html += f'''
-            <tr>
-                <td>{cat['name']}</td>
-                <td><a href="/admin/category/{cat['id']}/delete" onclick="return confirm('حذف؟')" style="color: red;">حذف</a></td>
-            </tr>
-        '''
-    
-    html = f'''<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>إدارة الفئات</title>
-    <style>
-        :root {{ --primary: #1a1a2e; --accent: #e94560; }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Cairo', sans-serif; background: #f8f9fa; }}
-        header {{ background: var(--primary); color: white; padding: 20px; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 30px 20px; }}
-        .form-box {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px; }}
-        input {{ width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; }}
-        button {{ width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }}
-        table {{ width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        th, td {{ padding: 15px; text-align: right; border-bottom: 1px solid #e0e0e0; }}
-        th {{ background: var(--primary); color: white; }}
-    </style>
-</head>
-<body>
-    <header><h1>إدارة الفئات</h1></header>
-    
-    <div class="container">
-        <div class="form-box">
-            <h2>إضافة فئة جديدة</h2>
-            <form method="POST" action="/admin/category/add">
-                <input type="text" name="name" placeholder="اسم الفئة" required>
-                <button type="submit">إضافة</button>
-            </form>
-        </div>
-        
-        <table>
-            <tr>
-                <th>الفئة</th>
-                <th>الإجراءات</th>
-            </tr>
-            {cat_html}
-        </table>
-    </div>
-</body>
-</html>
-    '''
-    return html
+    if not session.get('admin'): return redirect('/admin')
+    conn = get_db(); c = conn.cursor()
+    c.execute('SELECT * FROM categories'); categories = c.fetchall(); conn.close()
+    rows = ''.join([f'<tr><td>{cat["name"]}</td><td><a href="/admin/category/{cat["id"]}/delete" onclick="return confirm(\'حذف؟\')" style="color:#e94560;">حذف</a></td></tr>' for cat in categories])
+    return f'''<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>الفئات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:'Tajawal',sans-serif;background:#0d0d0d;color:white}}
+header{{background:#1a1a1a;padding:20px 40px;border-bottom:1px solid #2a2a2a}}
+.container{{max-width:560px;margin:40px auto;padding:0 20px}}
+.box{{background:#1a1a1a;border:1px solid #2a2a2a;padding:32px;border-radius:4px;margin-bottom:24px}}
+input{{width:100%;padding:10px;background:#0d0d0d;border:1px solid #2a2a2a;color:white;border-radius:2px;font-size:14px;margin-bottom:16px;outline:none}}
+button{{width:100%;padding:12px;background:#f5f0eb;color:#0d0d0d;border:none;border-radius:2px;font-weight:700;cursor:pointer}}
+table{{width:100%;border-collapse:collapse;background:#1a1a1a;border-radius:4px}}
+th{{background:#111;color:#888;padding:12px;text-align:right;font-size:12px}}
+td{{padding:12px;border-bottom:1px solid #222}}</style>
+</head><body><header><h1 style="font-size:18px;letter-spacing:2px;">إدارة الفئات</h1></header>
+<div class="container">
+<div class="box"><h3 style="margin-bottom:20px;color:#c8b99a;">إضافة فئة جديدة</h3>
+<form method="POST" action="/admin/category/add"><input type="text" name="name" placeholder="اسم الفئة" required><button type="submit">إضافة</button></form></div>
+<table><tr><th>الفئة</th><th>حذف</th></tr>{rows}</table>
+</div></body></html>'''
  
 @app.route('/admin/category/add', methods=['POST'])
 def admin_category_add():
-    """إضافة فئة"""
-    if not session.get('admin'):
-        return redirect('/admin')
-    
-    name = request.form.get('name')
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('INSERT INTO categories (name) VALUES (?)', (name,))
-    conn.commit()
-    conn.close()
-    
+    if not session.get('admin'): return redirect('/admin')
+    conn = get_db(); c = conn.cursor()
+    c.execute('INSERT INTO categories (name) VALUES (?)', (request.form.get('name'),))
+    conn.commit(); conn.close()
     return redirect('/admin/categories')
  
 @app.route('/admin/category/<int:cid>/delete')
 def admin_category_delete(cid):
-    """حذف فئة"""
-    if not session.get('admin'):
-        return redirect('/admin')
-    
-    conn = get_db()
-    c = conn.cursor()
+    if not session.get('admin'): return redirect('/admin')
+    conn = get_db(); c = conn.cursor()
     c.execute('DELETE FROM categories WHERE id = ?', (cid,))
-    conn.commit()
-    conn.close()
-    
+    conn.commit(); conn.close()
     return redirect('/admin/categories')
- 
-# ============ الطلبات ============
  
 @app.route('/admin/orders')
 def admin_orders():
-    """عرض الطلبات"""
-    if not session.get('admin'):
-        return redirect('/admin')
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM orders ORDER BY id DESC')
-    orders = c.fetchall()
-    conn.close()
-    
-    orders_html = ''
-    for o in orders:
-        orders_html += f'''
-            <tr>
-                <td>{o['id']}</td>
-                <td>{o['customer_name']}</td>
-                <td>{o['customer_phone']}</td>
-                <td>{o['total_price']:.0f}</td>
-                <td>{o['status']}</td>
-                <td>{o['order_date']}</td>
-            </tr>
-        '''
-    
-    html = f'''<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>الطلبات</title>
-    <style>
-        :root {{ --primary: #1a1a2e; --accent: #e94560; }}
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Cairo', sans-serif; background: #f8f9fa; }}
-        header {{ background: var(--primary); color: white; padding: 20px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 30px 20px; }}
-        table {{ width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        th {{ background: var(--primary); color: white; padding: 15px; text-align: right; }}
-        td {{ padding: 15px; border-bottom: 1px solid #e0e0e0; }}
-    </style>
-</head>
-<body>
-    <header><h1>الطلبات</h1></header>
-    
-    <div class="container">
-        <table>
-            <tr>
-                <th>المعرّف</th>
-                <th>الاسم</th>
-                <th>الهاتف</th>
-                <th>الإجمالي</th>
-                <th>الحالة</th>
-                <th>التاريخ</th>
-            </tr>
-            {orders_html if orders_html else '<tr><td colspan="6" style="text-align: center; color: #999;">لا توجد طلبات</td></tr>'}
-        </table>
-    </div>
-</body>
-</html>
-    '''
-    return html
- 
-# ============ تشغيل التطبيق ============
+    if not session.get('admin'): return redirect('/admin')
+    conn = get_db(); c = conn.cursor()
+    c.execute('SELECT * FROM orders ORDER BY id DESC'); orders = c.fetchall(); conn.close()
+    rows = ''.join([f'<tr><td>{o["id"]}</td><td>{o["customer_name"]}</td><td>{o["customer_phone"]}</td><td>{o["total_price"]:.0f}</td><td>{o["status"]}</td><td>{o["order_date"]}</td></tr>' for o in orders]) or '<tr><td colspan="6" style="text-align:center;color:#555;padding:40px;">لا توجد طلبات</td></tr>'
+    return f'''<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>الطلبات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:'Tajawal',sans-serif;background:#0d0d0d;color:white}}
+header{{background:#1a1a1a;padding:20px 40px;border-bottom:1px solid #2a2a2a}}
+.container{{max-width:1100px;margin:40px auto;padding:0 20px}}
+table{{width:100%;border-collapse:collapse;background:#1a1a1a;border-radius:4px}}
+th{{background:#111;color:#888;padding:14px;text-align:right;font-size:12px;letter-spacing:1px}}
+td{{padding:14px;border-bottom:1px solid #222;font-size:14px}}</style>
+</head><body><header><h1 style="font-size:18px;letter-spacing:2px;">الطلبات</h1></header>
+<div class="container"><table><tr><th>ID</th><th>العميل</th><th>الهاتف</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th></tr>{rows}</table></div></body></html>'''
  
 if __name__ == '__main__':
-    # تأكد من إنشاء قاعدة البيانات
     init_db()
-    
-    # احصل على PORT من البيئة (Render يعطيها تلقائياً)
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') != 'production'
-    
-    print('🚀 Server starting...')
-    print('📊 Admin panel available')
-    print('👤 Username: admin | Password: admin123')
-    
+    print('🚀 VESTIQUE starting...')
     app.run(debug=debug, host='0.0.0.0', port=port)
