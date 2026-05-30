@@ -1,17 +1,25 @@
+
 from flask import Flask, render_template_string, request, jsonify, session, redirect, url_for
 import sqlite3
 import hashlib
 import json
 from datetime import datetime
 import os
-
+ 
 app = Flask(__name__)
 app.secret_key = 'clothing_store_secret_2024'
-
+ 
 DB_NAME = 'clothing_store.db'
-
+ 
+# تأكد من إنشاء قاعدة البيانات عند البدء
+@app.before_request
+def create_database():
+    """تأكد من وجود قاعدة البيانات"""
+    if not os.path.exists(DB_NAME):
+        init_db()
+ 
 # ============ تهيئة قاعدة البيانات ============
-
+ 
 def init_db():
     """إنشاء قاعدة البيانات والجداول"""
     if os.path.exists(DB_NAME):
@@ -120,19 +128,19 @@ def init_db():
     
     conn.commit()
     conn.close()
-
+ 
 # ============ دوال مساعدة ============
-
+ 
 def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
-
+ 
 def hash_pwd(pwd):
     return hashlib.sha256(pwd.encode()).hexdigest()
-
+ 
 # ============ الصفحات الرئيسية ============
-
+ 
 @app.route('/')
 def index():
     """الصفحة الرئيسية"""
@@ -514,9 +522,9 @@ def index():
     '''
     
     return html
-
+ 
 # ============ لوحة التحكم ============
-
+ 
 @app.route('/admin')
 def admin_login():
     """صفحة دخول الأدمن"""
@@ -628,7 +636,7 @@ def admin_login():
 </html>
     '''
     return html
-
+ 
 @app.route('/admin/login', methods=['POST'])
 def admin_login_post():
     """معالجة دخول الأدمن"""
@@ -654,7 +662,7 @@ def admin_login_post():
     </body>
     </html>
     '''
-
+ 
 @app.route('/admin/dashboard')
 def admin_dashboard():
     """لوحة التحكم الرئيسية"""
@@ -803,15 +811,15 @@ def admin_dashboard():
 </html>
     '''
     return html
-
+ 
 @app.route('/admin/logout')
 def admin_logout():
     """تسجيل خروج الأدمن"""
     session.clear()
     return redirect('/admin')
-
+ 
 # ============ إدارة المنتجات ============
-
+ 
 @app.route('/admin/products')
 def admin_products():
     """صفحة إدارة المنتجات"""
@@ -883,7 +891,7 @@ def admin_products():
 </html>
     '''
     return html
-
+ 
 @app.route('/admin/product/new', methods=['GET', 'POST'])
 def admin_product_new():
     """إضافة منتج جديد"""
@@ -1008,7 +1016,7 @@ def admin_product_new():
 </html>
     '''
     return html
-
+ 
 @app.route('/admin/product/<int:pid>/delete')
 def admin_product_delete(pid):
     """حذف منتج"""
@@ -1022,9 +1030,9 @@ def admin_product_delete(pid):
     conn.close()
     
     return redirect('/admin/products')
-
+ 
 # ============ إدارة الفئات ============
-
+ 
 @app.route('/admin/categories')
 def admin_categories():
     """إدارة الفئات"""
@@ -1089,7 +1097,7 @@ def admin_categories():
 </html>
     '''
     return html
-
+ 
 @app.route('/admin/category/add', methods=['POST'])
 def admin_category_add():
     """إضافة فئة"""
@@ -1104,7 +1112,7 @@ def admin_category_add():
     conn.close()
     
     return redirect('/admin/categories')
-
+ 
 @app.route('/admin/category/<int:cid>/delete')
 def admin_category_delete(cid):
     """حذف فئة"""
@@ -1118,9 +1126,9 @@ def admin_category_delete(cid):
     conn.close()
     
     return redirect('/admin/categories')
-
+ 
 # ============ الطلبات ============
-
+ 
 @app.route('/admin/orders')
 def admin_orders():
     """عرض الطلبات"""
@@ -1182,12 +1190,19 @@ def admin_orders():
 </html>
     '''
     return html
-
+ 
 # ============ تشغيل التطبيق ============
-
+ 
 if __name__ == '__main__':
+    # تأكد من إنشاء قاعدة البيانات
     init_db()
-    print('🚀 Server starting at http://localhost:5000')
-    print('📊 Admin panel at http://localhost:5000/admin')
+    
+    # احصل على PORT من البيئة (Render يعطيها تلقائياً)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    
+    print('🚀 Server starting...')
+    print('📊 Admin panel available')
     print('👤 Username: admin | Password: admin123')
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    app.run(debug=debug, host='0.0.0.0', port=port)
